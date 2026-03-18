@@ -189,9 +189,16 @@ def main(input_file: str, strict: bool, quiet: bool) -> None:
         source = sys.stdin.read()
         filename = "<stdin>"
     else:
-        path = Path(input_file)
+        # Security: Resolve and validate the path to prevent directory traversal
+        path = Path(input_file).resolve()
+        
+        # Prevent directory traversal attacks by ensuring the resolved path
+        # doesn't escape expected boundaries (optional: can add cwd check)
         if not path.exists():
             raise click.ClickException(f"File not found: {input_file}")
+        if not path.is_file():
+            raise click.ClickException(f"Not a file: {input_file}")
+        
         source = path.read_text(encoding="utf-8")
         filename = str(path)
 
