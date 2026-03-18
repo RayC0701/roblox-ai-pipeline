@@ -28,6 +28,12 @@ assets/models/*.glb
 # Scraped docs (regenerable)
 docs/roblox-api/
 
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
 # OS
 .DS_Store
 Thumbs.db

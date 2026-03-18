@@ -92,6 +92,53 @@ python scripts/upload_asset.py assets/models/sword.fbx "Medieval Sword"
 python scripts/upload_asset.py assets/models/tree.fbx "Oak Tree" --asset-type Model
 ```
 
+## Testing
+
+### Run the test suite
+
+```bash
+# Install test dependencies (included in requirements.txt)
+pip install -r requirements.txt
+
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage report
+pytest tests/ --cov=scripts --cov-report=term
+
+# Run specific test file
+pytest tests/test_generate_luau.py -v
+pytest tests/test_generate_3d_asset.py -v
+pytest tests/test_validate_luau.py -v
+```
+
+**Target:** ≥60% coverage | **Runtime:** <5 seconds (all tests use mocks, no real API calls)
+
+### Luau Validation
+
+Validate generated Luau scripts for common issues before use:
+
+```bash
+# Validate a file
+python scripts/validate_luau.py src/server/coins.luau
+
+# Strict mode (fail on warnings too)
+python scripts/validate_luau.py --strict src/server/coins.luau
+
+# Quiet mode (errors only)
+python scripts/validate_luau.py --quiet src/server/coins.luau
+
+# From stdin
+cat generated.luau | python scripts/validate_luau.py -
+```
+
+Detected issues include:
+- Deprecated globals (`wait()`, `spawn()`, `delay()`) → use `task.*` equivalents
+- Missing service access via `GetService()`
+- Bare `pcall()` with ignored result
+- String concatenation inside loops (performance)
+- Accidental global variable declarations
+
 ## Rojo Integration
 
 Sync generated Luau scripts to Roblox Studio:

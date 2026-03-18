@@ -5,3 +5,9 @@ tqdm
 pyyaml
 python-dotenv
 click
+
+# Testing
+pytest
+pytest-mock
+responses
+pytest-cov
