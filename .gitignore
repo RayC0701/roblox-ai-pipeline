@@ -1,0 +1,37 @@
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# OpenAI assistant state
+.assistant_id
+
+# Generated assets (large binary files)
+assets/models/*.fbx
+assets/models/*.obj
+assets/models/*.glb
+
+# Roblox
+*.rbxl
+*.rbxlx
+*.rbxm
+
+# Scraped docs (regenerable)
+docs/roblox-api/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

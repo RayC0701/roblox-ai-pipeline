@@ -1,0 +1,48 @@
+assets:
+  - name: "knight_npc"
+    prompt: "Cartoon medieval knight with sword and shield, standing pose, Roblox character style, low-poly"
+    style: "cartoon"
+
+  - name: "wizard_npc"
+    prompt: "Fantasy wizard with staff and pointed hat, robes, cartoon Roblox style, game ready"
+    style: "cartoon"
+
+  - name: "shopkeeper_npc"
+    prompt: "Friendly merchant shopkeeper with apron, standing behind counter gesture, Roblox style"
+    style: "cartoon"
+
+  - name: "goblin_enemy"
+    prompt: "Small green goblin with dagger, menacing pose, cartoon Roblox enemy character, low-poly"
+    style: "cartoon"
+
+  - name: "skeleton_enemy"
+    prompt: "Cartoon skeleton warrior with rusty sword, undead enemy, Roblox game character"
+    style: "cartoon"
+
+  - name: "dragon_boss"
+    prompt: "Cartoon baby dragon, wings spread, breathing fire pose, Roblox boss character, low-poly"
+    style: "cartoon"
+
+  - name: "robot_companion"
+    prompt: "Cute small robot companion, floating, friendly eyes, sci-fi Roblox pet character"
+    style: "cartoon"
+
+  - name: "pirate_captain"
+    prompt: "Cartoon pirate captain with hat and hook hand, confident pose, Roblox character style"
+    style: "cartoon"
+
+  - name: "fairy_guide"
+    prompt: "Tiny glowing fairy with wings, magical sparkles, fantasy guide NPC, Roblox style"
+    style: "cartoon"
+
+  - name: "ninja_player"
+    prompt: "Cartoon ninja character in black outfit, throwing star in hand, action pose, Roblox style"
+    style: "cartoon"
+
+  - name: "farmer_npc"
+    prompt: "Friendly farmer with straw hat and pitchfork, overalls, Roblox village character"
+    style: "cartoon"
+
+  - name: "space_marine"
+    prompt: "Sci-fi space marine in powered armor, helmet, futuristic weapon, Roblox character style"
+    style: "realistic"

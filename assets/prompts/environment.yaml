@@ -1,0 +1,48 @@
+assets:
+  - name: "medieval_torch"
+    prompt: "Low-poly medieval wall torch with flame, game-ready, Roblox style, under 5000 tris"
+    style: "cartoon"
+
+  - name: "treasure_chest"
+    prompt: "Cartoon treasure chest, open lid, gold coins visible, Roblox-compatible, low-poly"
+    style: "cartoon"
+
+  - name: "sci_fi_door"
+    prompt: "Futuristic sliding door, sci-fi, metallic, Roblox game asset, clean geometry"
+    style: "realistic"
+
+  - name: "wooden_barrel"
+    prompt: "Simple wooden barrel, medieval tavern style, low-poly game prop, Roblox style"
+    style: "cartoon"
+
+  - name: "stone_well"
+    prompt: "Stone water well with rope and bucket, fantasy village, low-poly Roblox asset"
+    style: "cartoon"
+
+  - name: "campfire"
+    prompt: "Campfire with logs and flames, outdoor camping, cartoon style, Roblox game ready"
+    style: "cartoon"
+
+  - name: "mushroom_cluster"
+    prompt: "Cluster of colorful fantasy mushrooms, glowing, enchanted forest prop, low-poly"
+    style: "cartoon"
+
+  - name: "wooden_bridge"
+    prompt: "Short wooden plank bridge, rope railings, fantasy adventure, Roblox compatible"
+    style: "cartoon"
+
+  - name: "crystal_formation"
+    prompt: "Purple crystal cluster emerging from rock, magical cave prop, low-poly game asset"
+    style: "cartoon"
+
+  - name: "street_lamp"
+    prompt: "Victorian iron street lamp with warm glow, city environment prop, Roblox style"
+    style: "cartoon"
+
+  - name: "hay_bale"
+    prompt: "Round hay bale, farm environment prop, simple geometry, Roblox game ready"
+    style: "cartoon"
+
+  - name: "ancient_pillar"
+    prompt: "Broken ancient stone pillar, Greek ruins style, low-poly, Roblox compatible"
+    style: "realistic"

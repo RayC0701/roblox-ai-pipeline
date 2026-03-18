@@ -1,0 +1,48 @@
+assets:
+  - name: "medieval_sword"
+    prompt: "Cartoon medieval longsword, steel blade with leather grip, Roblox game weapon, low-poly"
+    style: "cartoon"
+
+  - name: "battle_axe"
+    prompt: "Double-headed battle axe, wooden handle, fantasy RPG weapon, Roblox style, low-poly"
+    style: "cartoon"
+
+  - name: "magic_staff"
+    prompt: "Wizard magic staff with glowing crystal orb on top, fantasy weapon, Roblox game asset"
+    style: "cartoon"
+
+  - name: "bow_and_arrow"
+    prompt: "Wooden longbow with quiver of arrows, medieval archer weapon, Roblox style, low-poly"
+    style: "cartoon"
+
+  - name: "pirate_cutlass"
+    prompt: "Curved pirate cutlass with golden guard, adventure weapon, Roblox game ready"
+    style: "cartoon"
+
+  - name: "laser_blaster"
+    prompt: "Futuristic sci-fi laser blaster pistol, glowing energy cell, Roblox weapon, low-poly"
+    style: "cartoon"
+
+  - name: "war_hammer"
+    prompt: "Heavy war hammer with stone head, Viking style, fantasy RPG weapon, Roblox asset"
+    style: "cartoon"
+
+  - name: "throwing_stars"
+    prompt: "Set of ninja throwing stars (shuriken), metallic, Roblox weapon accessory, low-poly"
+    style: "cartoon"
+
+  - name: "fire_wand"
+    prompt: "Magic fire wand with flame tip, enchanted weapon, cartoon Roblox game asset"
+    style: "cartoon"
+
+  - name: "shield_wooden"
+    prompt: "Round wooden shield with iron bands, medieval defensive gear, Roblox style, low-poly"
+    style: "cartoon"
+
+  - name: "crossbow"
+    prompt: "Medieval crossbow with bolt loaded, wooden and iron, Roblox weapon prop, low-poly"
+    style: "cartoon"
+
+  - name: "ice_sword"
+    prompt: "Magical ice sword with frozen blade, blue glow, fantasy Roblox weapon, low-poly"
+    style: "cartoon"

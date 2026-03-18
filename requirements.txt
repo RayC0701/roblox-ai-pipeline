@@ -1,0 +1,7 @@
+anthropic
+openai
+requests
+tqdm
+pyyaml
+python-dotenv
+click
