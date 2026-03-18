@@ -19,6 +19,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Install Selene linter
+        run: |
+          curl -sSL https://github.com/Kampfkarren/selene/releases/latest/download/selene-linux.zip -o selene.zip
+          unzip -o selene.zip -d /usr/local/bin
+          chmod +x /usr/local/bin/selene
+          selene --version
+
       - name: Compile-check all scripts
         run: |
           python -m py_compile scripts/generate_luau.py
@@ -26,6 +33,16 @@ jobs:
           python -m py_compile scripts/generate_3d_asset.py
           python -m py_compile scripts/batch_generate_assets.py
           python -m py_compile scripts/upload_asset.py
+          python -m py_compile scripts/validate_fbx.py
+          python -m py_compile scripts/cost_tracker.py
+
+      - name: Lint Luau files with Selene
+        run: |
+          if ls src/**/*.luau 1>/dev/null 2>&1; then
+            selene src/ || echo "Selene found issues (non-blocking for now)"
+          else
+            echo "No .luau files to lint"
+          fi
 
       - name: Dry-run test for generate_luau.py
         run: python scripts/generate_luau.py "Create a basic coin collection system" --dry-run

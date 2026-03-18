@@ -34,6 +34,9 @@ docs/roblox-api/
 htmlcov/
 coverage.xml
 
+# Cost tracking logs (regenerable)
+logs/costs.csv
+
 # OS
 .DS_Store
 Thumbs.db

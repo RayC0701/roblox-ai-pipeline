@@ -1,0 +1,7 @@
+# 3D Asset prompt for the coin collection system
+asset:
+  name: "Gold Coin"
+  prompt: "Low-poly gold coin with embossed star, cartoon style, shiny metallic surface, suitable for a Roblox game collectible"
+  art_style: cartoon
+  asset_type: Model
+  negative_prompt: "realistic, high-poly, dark, gritty, complex geometry"

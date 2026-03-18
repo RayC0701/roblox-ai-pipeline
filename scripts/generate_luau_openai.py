@@ -194,12 +194,44 @@ def generate(
 
         messages = client.beta.threads.messages.list(thread_id=thread.id)
         raw_output = messages.data[0].content[0].text.value
+
+        # Log API cost (best-effort; Assistants API usage reporting varies)
+        try:
+            from scripts.cost_tracker import log_cost
+            usage = getattr(run, "usage", None)
+            tokens_in = getattr(usage, "prompt_tokens", 0) if usage else 0
+            tokens_out = getattr(usage, "completion_tokens", 0) if usage else 0
+            log_cost(
+                script="generate_luau_openai",
+                model=model or "gpt-4o",
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+            )
+        except Exception:
+            pass  # Cost tracking is best-effort
     except click.ClickException:
         raise
     except Exception as e:
         raise click.ClickException(f"OpenAI API error: {e}")
 
     code = strip_markdown_fences(raw_output)
+
+    # Run validation on generated code before writing
+    try:
+        from scripts.validate_luau import validate_luau as run_validation, format_issue
+        issues = run_validation(code)
+        errors = [i for i in issues if i.severity == "error"]
+        warnings = [i for i in issues if i.severity == "warning"]
+        if errors:
+            click.echo(f"⚠ Generated code has {len(errors)} error(s):", err=True)
+            for issue in errors:
+                click.echo(f"  {format_issue(issue, '<generated>')}", err=True)
+        if warnings:
+            click.echo(f"ℹ Generated code has {len(warnings)} warning(s):", err=True)
+            for issue in warnings:
+                click.echo(f"  {format_issue(issue, '<generated>')}", err=True)
+    except ImportError:
+        pass  # validate_luau not available; skip
 
     if output:
         out_path = Path(output)

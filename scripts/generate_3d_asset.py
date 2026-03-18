@@ -244,6 +244,18 @@ def main(prompt: str, output: str, art_style: str, preview_only: bool) -> None:
         if not fbx_url:
             raise click.ClickException("No model URL found in preview result.")
         download_model(fbx_url, Path(output))
+        # Log cost for preview-only
+        try:
+            from scripts.cost_tracker import log_cost
+            log_cost(
+                script="generate_3d_asset",
+                model="meshy-preview",
+                tokens_in=0,
+                tokens_out=0,
+                cost_usd=0.0,
+            )
+        except Exception:
+            pass
         return
 
     # Step 2: Refine
@@ -259,6 +271,20 @@ def main(prompt: str, output: str, art_style: str, preview_only: bool) -> None:
         raise click.ClickException("No model URL found in refine result.")
 
     download_model(fbx_url, Path(output))
+
+    # Log cost for the Meshy API call (flat-rate, tokens not applicable)
+    try:
+        from scripts.cost_tracker import log_cost
+        log_cost(
+            script="generate_3d_asset",
+            model="meshy-refine",
+            tokens_in=0,
+            tokens_out=0,
+            cost_usd=0.0,  # Meshy uses credits, not per-token billing
+        )
+    except Exception:
+        pass  # Cost tracking is best-effort
+
     click.echo("Done!")
 
 

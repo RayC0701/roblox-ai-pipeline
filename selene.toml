@@ -1,0 +1,3 @@
+# Selene configuration for Roblox Luau projects
+# See: https://kampfkarren.github.io/selene/
+std = "roblox"

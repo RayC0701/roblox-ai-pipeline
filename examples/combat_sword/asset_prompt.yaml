@@ -1,0 +1,7 @@
+# 3D Asset prompt for the combat sword system
+asset:
+  name: "Medieval Sword"
+  prompt: "Low-poly medieval broadsword with leather-wrapped handle, cartoon style, clean geometry suitable for Roblox, silver blade with slight blue glow"
+  art_style: cartoon
+  asset_type: Model
+  negative_prompt: "realistic, high-poly, modern, futuristic, overly detailed"

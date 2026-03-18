@@ -140,6 +140,19 @@ def generate_luau(
     except anthropic.APIError as e:
         raise click.ClickException(f"Anthropic API error: {e}")
 
+    # Log API cost
+    try:
+        from scripts.cost_tracker import log_cost
+        usage = message.usage
+        log_cost(
+            script="generate_luau",
+            model=model,
+            tokens_in=usage.input_tokens,
+            tokens_out=usage.output_tokens,
+        )
+    except Exception:
+        pass  # Cost tracking is best-effort
+
     raw_output = message.content[0].text
     return strip_markdown_fences(raw_output)
 
@@ -188,6 +201,23 @@ def main(
         return
 
     code = generate_luau(task_description, model, system_prompt, knowledge_context)
+
+    # Run validation on generated code before writing
+    try:
+        from scripts.validate_luau import validate_luau as run_validation, format_issue
+        issues = run_validation(code)
+        errors = [i for i in issues if i.severity == "error"]
+        warnings = [i for i in issues if i.severity == "warning"]
+        if errors:
+            click.echo(f"⚠ Generated code has {len(errors)} error(s):", err=True)
+            for issue in errors:
+                click.echo(f"  {format_issue(issue, '<generated>')}", err=True)
+        if warnings:
+            click.echo(f"ℹ Generated code has {len(warnings)} warning(s):", err=True)
+            for issue in warnings:
+                click.echo(f"  {format_issue(issue, '<generated>')}", err=True)
+    except ImportError:
+        pass  # validate_luau not available; skip
 
     if output:
         out_path = Path(output)

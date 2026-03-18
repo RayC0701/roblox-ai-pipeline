@@ -91,13 +91,13 @@ fi
 # Derive output path if not provided
 if [[ -z "$OUTPUT_FILE" ]]; then
     SLUG="${ASSET_NAME// /_}"
-    SLUG="${SLUG,,}"
+    SLUG=$(echo "$SLUG" | tr '[:upper:]' '[:lower:]')
     OUTPUT_FILE="$PROJECT_ROOT/src/server/${SLUG}.server.luau"
 fi
 
 # Derive model output path from name
 MODEL_SLUG="${ASSET_NAME// /_}"
-MODEL_SLUG="${MODEL_SLUG,,}"
+MODEL_SLUG=$(echo "$MODEL_SLUG" | tr '[:upper:]' '[:lower:]')
 MODEL_FILE="$PROJECT_ROOT/assets/models/${MODEL_SLUG}.fbx"
 
 # --------------------------------------------------------------------------
@@ -129,10 +129,26 @@ if [[ -n "$DRY_RUN" ]]; then
     echo "DRYRUN_PLACEHOLDER" > "$MODEL_FILE"
     echo "  [DRY RUN] Created placeholder: $MODEL_FILE"
 else
-    python "$SCRIPT_DIR/generate_3d_asset.py" "$PROMPT" \
+    python3 "$SCRIPT_DIR/generate_3d_asset.py" "$PROMPT" \
         --output "$MODEL_FILE" \
         --art-style "$ART_STYLE" \
         ${PREVIEW_ONLY}
+fi
+
+echo ""
+
+# --------------------------------------------------------------------------
+# Step 1.5: Validate the 3D asset
+# --------------------------------------------------------------------------
+echo "► Validating 3D asset..."
+
+if [[ -n "$DRY_RUN" ]]; then
+    echo "  [DRY RUN] Would validate: $MODEL_FILE"
+else
+    if ! python3 "$SCRIPT_DIR/validate_fbx.py" "$MODEL_FILE"; then
+        echo "ERROR: 3D asset validation failed for $MODEL_FILE" >&2
+        exit 1
+    fi
 fi
 
 echo ""
@@ -149,7 +165,7 @@ if [[ -n "$DRY_RUN" ]]; then
     # Inject a fake entry into the registry so step 3 has something to work with
     REGISTRY="$PROJECT_ROOT/assets/asset-registry.json"
     mkdir -p "$(dirname "$REGISTRY")"
-    KEY="${ASSET_NAME^^}"
+    KEY=$(echo "$ASSET_NAME" | tr '[:lower:]' '[:upper:]')
     KEY="${KEY// /_}"
     KEY="${KEY//-/_}"
     python3 - <<PYEOF
@@ -167,7 +183,7 @@ reg_path.write_text(json.dumps(reg, indent=2))
 print(f"  [DRY RUN] Registry updated with placeholder ID 000000000")
 PYEOF
 else
-    python "$SCRIPT_DIR/upload_asset.py" "$MODEL_FILE" "$ASSET_NAME" \
+    python3 "$SCRIPT_DIR/upload_asset.py" "$MODEL_FILE" "$ASSET_NAME" \
         --asset-type "$ASSET_TYPE" \
         --update-luau
 fi
@@ -179,7 +195,7 @@ echo ""
 # --------------------------------------------------------------------------
 echo "► Step 3/4: Regenerating AssetIds.luau..."
 
-python "$SCRIPT_DIR/upload_asset.py" --update-luau
+python3 "$SCRIPT_DIR/upload_asset.py" --update-luau
 
 echo ""
 
@@ -194,7 +210,7 @@ if [[ -n "$DRY_RUN" ]]; then
     GENERATE_ARGS+=("--dry-run")
 fi
 
-python "$SCRIPT_DIR/generate_luau.py" "${GENERATE_ARGS[@]}"
+python3 "$SCRIPT_DIR/generate_luau.py" "${GENERATE_ARGS[@]}"
 
 echo ""
 
@@ -210,3 +226,23 @@ if [[ -z "$DRY_RUN" ]]; then
     echo " Luau Code : $OUTPUT_FILE"
 fi
 echo "============================================================"
+
+# --------------------------------------------------------------------------
+# Cost Summary
+# --------------------------------------------------------------------------
+COSTS_CSV="$PROJECT_ROOT/logs/costs.csv"
+if [[ -f "$COSTS_CSV" ]]; then
+    echo ""
+    echo "💰 API Cost Summary:"
+    echo "------------------------------------------------------------"
+    # Parse CSV and sum costs (skip header)
+    TOTAL_COST=$(tail -n +2 "$COSTS_CSV" | awk -F',' '{sum += $6} END {printf "%.6f", sum}')
+    TOTAL_IN=$(tail -n +2 "$COSTS_CSV" | awk -F',' '{sum += $4} END {printf "%d", sum}')
+    TOTAL_OUT=$(tail -n +2 "$COSTS_CSV" | awk -F',' '{sum += $5} END {printf "%d", sum}')
+    RUN_COUNT=$(tail -n +2 "$COSTS_CSV" | wc -l | tr -d ' ')
+    echo " Total API calls : $RUN_COUNT"
+    echo " Tokens in       : $TOTAL_IN"
+    echo " Tokens out      : $TOTAL_OUT"
+    echo " Total cost      : \$$TOTAL_COST"
+    echo "------------------------------------------------------------"
+fi
