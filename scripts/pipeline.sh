@@ -16,6 +16,7 @@
 #       [--art-style cartoon] \
 #       [--preview-only] \
 #       [--asset-type Model] \
+#       [--generator meshy|blender] \
 #       [--dry-run]
 #
 # Environment variables required (or set in .env):
@@ -49,6 +50,7 @@ OUTPUT_FILE=""
 ART_STYLE="cartoon"
 PREVIEW_ONLY=""
 ASSET_TYPE="Model"
+GENERATOR="meshy"
 DRY_RUN=""
 
 # --------------------------------------------------------------------------
@@ -63,6 +65,7 @@ while [[ $# -gt 0 ]]; do
         --art-style)    ART_STYLE="$2";    shift 2 ;;
         --asset-type)   ASSET_TYPE="$2";   shift 2 ;;
         --preview-only) PREVIEW_ONLY="--preview-only"; shift ;;
+        --generator)    GENERATOR="$2";    shift 2 ;;
         --dry-run)      DRY_RUN="1";       shift ;;
         *)
             echo "Unknown argument: $1" >&2
@@ -88,6 +91,11 @@ if [[ -z "$SPEC_FILE" ]]; then
     exit 1
 fi
 
+if [[ "$GENERATOR" != "meshy" && "$GENERATOR" != "blender" ]]; then
+    echo "Error: --generator must be 'meshy' or 'blender' (got: $GENERATOR)." >&2
+    exit 1
+fi
+
 # Derive output path if not provided
 if [[ -z "$OUTPUT_FILE" ]]; then
     SLUG="${ASSET_NAME// /_}"
@@ -109,6 +117,7 @@ echo "============================================================"
 echo " Prompt     : $PROMPT"
 echo " Asset Name : $ASSET_NAME"
 echo " Art Style  : $ART_STYLE"
+echo " Generator  : $GENERATOR"
 echo " Spec File  : $SPEC_FILE"
 echo " Output     : $OUTPUT_FILE"
 if [[ -n "$DRY_RUN" ]]; then
@@ -120,14 +129,23 @@ echo ""
 # --------------------------------------------------------------------------
 # Step 1: Generate 3D Asset
 # --------------------------------------------------------------------------
-echo "► Step 1/4: Generating 3D asset..."
+echo "► Step 1/4: Generating 3D asset (generator: $GENERATOR)..."
 
 if [[ -n "$DRY_RUN" ]]; then
-    echo "  [DRY RUN] Would call: python scripts/generate_3d_asset.py \"$PROMPT\" \\"
-    echo "            --output \"$MODEL_FILE\" --art-style $ART_STYLE $PREVIEW_ONLY"
+    if [[ "$GENERATOR" == "blender" ]]; then
+        echo "  [DRY RUN] Would call: python scripts/generate_blender_asset.py \"$PROMPT\" \\"
+        echo "            --output \"$MODEL_FILE\" --art-style $ART_STYLE"
+    else
+        echo "  [DRY RUN] Would call: python scripts/generate_3d_asset.py \"$PROMPT\" \\"
+        echo "            --output \"$MODEL_FILE\" --art-style $ART_STYLE $PREVIEW_ONLY"
+    fi
     mkdir -p "$(dirname "$MODEL_FILE")"
     echo "DRYRUN_PLACEHOLDER" > "$MODEL_FILE"
     echo "  [DRY RUN] Created placeholder: $MODEL_FILE"
+elif [[ "$GENERATOR" == "blender" ]]; then
+    python3 "$SCRIPT_DIR/generate_blender_asset.py" "$PROMPT" \
+        --output "$MODEL_FILE" \
+        --art-style "$ART_STYLE"
 else
     python3 "$SCRIPT_DIR/generate_3d_asset.py" "$PROMPT" \
         --output "$MODEL_FILE" \
@@ -202,7 +220,7 @@ if [[ -n "$DRY_RUN" ]]; then
     GENERATE_ARGS+=("--dry-run")
 fi
 
-python3 "$SCRIPT_DIR/generate_luau.py" "${GENERATE_ARGS[@]}"
+PYTHONPATH="$PROJECT_ROOT" python3 "$SCRIPT_DIR/generate_luau.py" "${GENERATE_ARGS[@]}"
 
 echo ""
 

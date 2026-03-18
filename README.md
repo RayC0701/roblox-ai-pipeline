@@ -64,9 +64,13 @@ python scripts/generate_luau_openai.py generate --spec specs/feature.md
 python scripts/generate_luau_openai.py generate "task" --output src/server/feature.luau
 ```
 
-### Component 3: 3D Asset Generation (Meshy.ai)
+### Component 3: 3D Asset Generation
 
-Generate 3D models from text prompts.
+Two generators are available for creating 3D assets:
+
+#### Option A: Meshy.ai (default)
+
+Cloud-based AI generation. Best for organic, detailed, or textured assets.
 
 ```bash
 # Single asset
@@ -81,6 +85,61 @@ python scripts/generate_3d_asset.py "Simple wooden crate" --preview-only
 # Batch generation from YAML
 python scripts/batch_generate_assets.py assets/prompts/environment.yaml assets/models/
 python scripts/batch_generate_assets.py assets/prompts/weapons.yaml assets/models/ --preview-only
+```
+
+#### Option B: Blender (free, procedural)
+
+Uses Claude AI to generate a Blender Python script, then executes it in Blender's
+headless mode. Best for simple geometric assets (coins, crates, platforms, gems).
+
+**Prerequisites:** Install Blender 4.0+:
+```bash
+# macOS
+brew install --cask blender
+
+# Linux (Ubuntu/Debian)
+sudo apt install blender
+# or: sudo snap install blender --classic
+
+# Windows
+winget install BlenderFoundation.Blender
+```
+
+```bash
+# Single asset
+python scripts/generate_blender_asset.py "Low-poly gold coin" --output assets/models/coin.fbx
+
+# Choose art style
+python scripts/generate_blender_asset.py "Cartoon tree" --art-style cartoon
+```
+
+#### When to use which?
+
+| Feature | Meshy.ai | Blender (procedural) |
+|---|---|---|
+| Cost | Credits (~$0.10-$0.30/asset) | Free (only Claude API ~$0.01) |
+| Quality | High (AI-generated textures) | Good for geometric shapes |
+| Speed | 1-5 min (cloud processing) | 10-30 sec (local) |
+| Best for | Characters, organic shapes, textured models | Coins, crates, platforms, gems, primitives |
+| Requires | `MESHY_API_KEY` | Blender installed locally |
+
+#### Using generators with the pipeline
+
+Pass `--generator blender` or `--generator meshy` (default) to `pipeline.sh`:
+
+```bash
+# Use Blender for a simple coin asset
+./scripts/pipeline.sh \
+    --prompt "Low-poly gold coin" \
+    --name "Gold Coin" \
+    --spec specs/coin.md \
+    --generator blender
+
+# Use Meshy for a detailed character (default)
+./scripts/pipeline.sh \
+    --prompt "Low-poly medieval knight" \
+    --name "Knight" \
+    --spec specs/combat.md
 ```
 
 ### Upload to Roblox

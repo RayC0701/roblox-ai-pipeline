@@ -3,6 +3,9 @@
 #
 # Usage:
 #   ./examples/coin_collection/run.sh [--dry-run]
+#
+# Use the free Blender generator (no Meshy API key needed):
+#   ./examples/coin_collection/run.sh --generator blender [--dry-run]
 
 set -euo pipefail
 
