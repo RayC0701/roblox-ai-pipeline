@@ -1,0 +1,106 @@
+name: Validate Pipeline Scripts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Compile-check all scripts
+        run: |
+          python -m py_compile scripts/generate_luau.py
+          python -m py_compile scripts/generate_luau_openai.py
+          python -m py_compile scripts/generate_3d_asset.py
+          python -m py_compile scripts/batch_generate_assets.py
+          python -m py_compile scripts/upload_asset.py
+
+      - name: Dry-run test for generate_luau.py
+        run: python scripts/generate_luau.py "Create a basic coin collection system" --dry-run
+
+      - name: Run all unit + integration tests (mocked)
+        run: |
+          pytest tests/ -v --cov=scripts --cov-report=term-missing
+        # No real API keys are needed — all external calls are mocked via
+        # the `responses` library and unittest.mock.
+        env:
+          # These are intentionally dummy values; real keys are not required
+          # for the test suite.  Set them as GitHub Actions Secrets if you
+          # want to run live smoke tests in a separate workflow.
+          MESHY_API_KEY: "ci-dummy-key"
+          ROBLOX_API_KEY: "ci-dummy-key"
+          ROBLOX_CREATOR_ID: "0"
+          ANTHROPIC_API_KEY: "ci-dummy-key"
+
+  pipeline-dry-run:
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Make pipeline.sh executable
+        run: chmod +x scripts/pipeline.sh
+
+      - name: Dry-run full pipeline orchestrator
+        run: |
+          ./scripts/pipeline.sh \
+            --prompt "Low-poly test sword" \
+            --name "Test Sword" \
+            --spec prompts/templates/combat-system.md \
+            --output /tmp/test_output.luau \
+            --dry-run
+        # --dry-run mode skips all real API calls and creates placeholder
+        # files.  Safe to run without any secrets.
+        env:
+          MESHY_API_KEY: "ci-dummy-key"
+          ROBLOX_API_KEY: "ci-dummy-key"
+          ROBLOX_CREATOR_ID: "0"
+          ANTHROPIC_API_KEY: "ci-dummy-key"
+
+# ============================================================
+# Using Real API Keys in CI (optional / advanced)
+# ============================================================
+#
+# To run a live smoke-test workflow with real keys, create a new workflow
+# file (e.g. .github/workflows/smoke-test.yml) with:
+#
+#   on:
+#     workflow_dispatch:          # manual trigger only
+#
+#   jobs:
+#     smoke:
+#       runs-on: ubuntu-latest
+#       environment: production   # gates on required approvals
+#       steps:
+#         - uses: actions/checkout@v4
+#         - uses: actions/setup-python@v5
+#           with:
+#             python-version: "3.12"
+#         - run: pip install -r requirements.txt
+#         - name: Live smoke test
+#           run: python scripts/upload_asset.py assets/models/sample.fbx "Smoke Test" --no-poll
+#           env:
+#             ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+#             ROBLOX_CREATOR_ID: ${{ secrets.ROBLOX_CREATOR_ID }}
+#
+# Store real keys as GitHub Actions Secrets (Settings → Secrets and
+# variables → Actions) — NEVER hardcode them in the workflow YAML.
