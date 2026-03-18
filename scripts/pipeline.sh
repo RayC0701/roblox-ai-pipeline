@@ -168,20 +168,12 @@ if [[ -n "$DRY_RUN" ]]; then
     KEY=$(echo "$ASSET_NAME" | tr '[:lower:]' '[:upper:]')
     KEY="${KEY// /_}"
     KEY="${KEY//-/_}"
-    python3 - <<PYEOF
-import json, pathlib
-reg_path = pathlib.Path("$REGISTRY")
-reg = json.loads(reg_path.read_text()) if reg_path.exists() else {}
-reg["$KEY"] = {
-    "assetId": "000000000",
-    "displayName": "$ASSET_NAME",
-    "assetType": "$ASSET_TYPE",
-    "sourceFile": "$MODEL_FILE",
-    "uploadedAt": "1970-01-01T00:00:00+00:00",
-}
-reg_path.write_text(json.dumps(reg, indent=2))
-print(f"  [DRY RUN] Registry updated with placeholder ID 000000000")
-PYEOF
+    python3 "$SCRIPT_DIR/_dryrun_registry.py" \
+        --registry "$REGISTRY" \
+        --key "$KEY" \
+        --asset-name "$ASSET_NAME" \
+        --asset-type "$ASSET_TYPE" \
+        --model-file "$MODEL_FILE"
 else
     python3 "$SCRIPT_DIR/upload_asset.py" "$MODEL_FILE" "$ASSET_NAME" \
         --asset-type "$ASSET_TYPE" \

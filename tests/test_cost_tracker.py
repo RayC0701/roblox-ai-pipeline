@@ -27,6 +27,19 @@ class TestEstimateCost:
         cost = estimate_cost("gpt-4o", tokens_in=0, tokens_out=0)
         assert cost == 0.0
 
+    def test_meshy_preview_flat_rate(self):
+        cost = estimate_cost("meshy-preview", tokens_in=0, tokens_out=0)
+        assert abs(cost - 0.10) < 0.001
+
+    def test_meshy_refine_flat_rate(self):
+        cost = estimate_cost("meshy-refine", tokens_in=0, tokens_out=0)
+        assert abs(cost - 0.30) < 0.001
+
+    def test_meshy_flat_rate_ignores_tokens(self):
+        """Flat-rate models should return the flat fee regardless of token counts."""
+        cost = estimate_cost("meshy-refine", tokens_in=9999, tokens_out=9999)
+        assert abs(cost - 0.30) < 0.001
+
 
 class TestLogCost:
     def test_creates_csv_with_header(self, tmp_path: Path):

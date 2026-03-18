@@ -69,6 +69,9 @@ def get_roblox_config() -> tuple[str, str]:
 # Upload
 # ---------------------------------------------------------------------------
 
+UPLOAD_MAX_RETRIES = 3  # retry transient failures
+
+
 def upload_asset(
     file_path: Path,
     asset_name: str,
@@ -77,6 +80,8 @@ def upload_asset(
     creator_id: str,
 ) -> dict:
     """Upload a 3D asset to Roblox via Open Cloud API.
+
+    Retries transient errors (429 / 5xx) with exponential backoff.
 
     Args:
         file_path: Path to the asset file (.fbx, .obj, etc.).
@@ -105,25 +110,45 @@ def upload_asset(
         },
     })
 
-    try:
-        with open(file_path, "rb") as f:
-            resp = requests.post(
-                ROBLOX_ASSETS_URL,
-                headers={"x-api-key": api_key},
-                data={"request": request_body},
-                files={
-                    "fileContent": (file_path.name, f, "application/octet-stream")
-                },
+    last_error: Exception | None = None
+    for attempt in range(UPLOAD_MAX_RETRIES):
+        try:
+            with open(file_path, "rb") as f:
+                resp = requests.post(
+                    ROBLOX_ASSETS_URL,
+                    headers={"x-api-key": api_key},
+                    data={"request": request_body},
+                    files={
+                        "fileContent": (file_path.name, f, "application/octet-stream")
+                    },
+                )
+        except requests.RequestException as e:
+            last_error = e
+            wait_time = 2 ** (attempt + 1)
+            click.echo(f"Upload request failed ({e}). Retrying in {wait_time}s...")
+            time.sleep(wait_time)
+            continue
+
+        if resp.status_code == 429 or resp.status_code >= 500:
+            wait_time = 2 ** (attempt + 1)
+            click.echo(
+                f"Upload returned {resp.status_code}. Retrying in {wait_time}s..."
             )
-    except requests.RequestException as e:
-        raise click.ClickException(f"Upload request failed: {e}")
+            time.sleep(wait_time)
+            continue
 
-    if resp.status_code >= 400:
-        raise click.ClickException(
-            f"Upload failed ({resp.status_code}): {resp.text}"
-        )
+        if resp.status_code >= 400:
+            raise click.ClickException(
+                f"Upload failed ({resp.status_code}): {resp.text}"
+            )
 
-    return resp.json()
+        return resp.json()
+
+    if last_error:
+        raise click.ClickException(f"Upload request failed after {UPLOAD_MAX_RETRIES} retries: {last_error}")
+    raise click.ClickException(
+        f"Upload failed after {UPLOAD_MAX_RETRIES} retries (last status: {resp.status_code})"
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -28,8 +28,9 @@ MODEL_COSTS: dict[str, dict[str, float]] = {
     "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
     "gpt-4-turbo": {"input": 0.01, "output": 0.03},
     # Meshy (flat rate per task, not per-token)
-    "meshy-preview": {"input": 0.0, "output": 0.0},
-    "meshy-refine": {"input": 0.0, "output": 0.0},
+    # Preview costs ~1 credit ($0.10), refine ~3 credits ($0.30)
+    "meshy-preview": {"flat": 0.10},
+    "meshy-refine": {"flat": 0.30},
 }
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -41,6 +42,9 @@ CSV_HEADER = ["Timestamp", "Script", "Model", "TokensIn", "TokensOut", "CostUSD"
 def estimate_cost(model: str, tokens_in: int, tokens_out: int) -> float:
     """Estimate the cost in USD for a given model and token counts.
 
+    For flat-rate models (e.g. Meshy), the flat fee is returned regardless
+    of token counts.
+
     Args:
         model: Model identifier (e.g. 'claude-sonnet-4-6').
         tokens_in: Number of input tokens.
@@ -50,6 +54,8 @@ def estimate_cost(model: str, tokens_in: int, tokens_out: int) -> float:
         Estimated cost in USD.
     """
     costs = MODEL_COSTS.get(model, {"input": 0.003, "output": 0.015})
+    if "flat" in costs:
+        return costs["flat"]
     return (tokens_in / 1000 * costs["input"]) + (tokens_out / 1000 * costs["output"])
 
 

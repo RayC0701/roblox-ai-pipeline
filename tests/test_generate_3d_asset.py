@@ -214,6 +214,22 @@ class TestPollTask:
         with pytest.raises(click.ClickException, match="Failed to poll task"):
             poll_task("test-key", "task-abc123")
 
+    def test_raises_on_timeout(self, meshy_task_pending):
+        """poll_task should raise after the timeout expires."""
+        import click
+        with patch("time.sleep"), \
+             patch("time.time") as mock_time, \
+             patch("requests.get") as mock_get:
+            # Simulate time progressing past the deadline
+            mock_time.side_effect = [0, 0, 999]  # start=0, deadline check=0, then 999 > timeout
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = meshy_task_pending
+            mock_get.return_value = mock_resp
+
+            with pytest.raises(click.ClickException, match="timed out"):
+                poll_task("test-key", "task-abc123", timeout=10)
+
 
 # ---------------------------------------------------------------------------
 # Unit tests: download_model

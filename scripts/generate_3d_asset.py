@@ -25,6 +25,7 @@ load_dotenv()
 BASE_URL = "https://api.meshy.ai/v2"
 MAX_RETRIES = 3
 POLL_INTERVAL = 10  # seconds
+MAX_POLL_DURATION = 600  # seconds (10 minutes max)
 
 
 def get_api_key() -> str:
@@ -143,24 +144,37 @@ def create_refine_task(api_key: str, preview_task_id: str) -> str:
     raise click.ClickException("Max retries exceeded due to rate limiting.")
 
 
-def poll_task(api_key: str, task_id: str, label: str = "Task") -> dict:
-    """Poll a Meshy task until it completes or fails.
+def poll_task(
+    api_key: str,
+    task_id: str,
+    label: str = "Task",
+    timeout: int = MAX_POLL_DURATION,
+) -> dict:
+    """Poll a Meshy task until it completes, fails, or times out.
 
     Args:
         api_key: Meshy API key.
         task_id: The task to poll.
         label: Display label for progress output.
+        timeout: Maximum seconds to poll before raising a timeout error.
 
     Returns:
         The completed task status dict.
 
     Raises:
-        click.ClickException: If the task fails.
+        click.ClickException: If the task fails or times out.
     """
     spinner = ["|", "/", "-", "\\"]
     tick = 0
+    deadline = time.time() + timeout
 
     while True:
+        if time.time() > deadline:
+            click.echo()
+            raise click.ClickException(
+                f"{label} timed out after {timeout}s of polling."
+            )
+
         resp = requests.get(
             f"{BASE_URL}/text-to-3d/{task_id}",
             headers=get_headers(api_key),

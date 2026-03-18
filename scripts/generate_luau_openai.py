@@ -19,23 +19,11 @@ from pathlib import Path
 import click
 from dotenv import load_dotenv
 
+from scripts.utils import strip_markdown_fences, validate_and_report
+
 load_dotenv()
 
 ASSISTANT_ID_FILE = Path(__file__).resolve().parent.parent / ".assistant_id"
-
-
-def strip_markdown_fences(text: str) -> str:
-    """Remove markdown code fences from generated output.
-
-    Args:
-        text: Raw text that may contain ```luau ... ``` fences.
-
-    Returns:
-        Clean code without fences.
-    """
-    text = re.sub(r"^```(?:luau|lua)?\s*\n", "", text.strip())
-    text = re.sub(r"\n```\s*$", "", text)
-    return text.strip()
 
 
 def get_openai_client():
@@ -112,9 +100,10 @@ def create_assistant(model: str) -> None:
         for f in md_files:
             click.echo(f"Uploading {f.name}...")
             try:
-                uploaded = client.files.create(
-                    file=open(f, "rb"), purpose="assistants"
-                )
+                with open(f, "rb") as fh:
+                    uploaded = client.files.create(
+                        file=fh, purpose="assistants"
+                    )
                 file_ids.append(uploaded.id)
             except Exception as e:
                 click.echo(f"  Warning: failed to upload {f.name}: {e}")
@@ -217,21 +206,7 @@ def generate(
     code = strip_markdown_fences(raw_output)
 
     # Run validation on generated code before writing
-    try:
-        from scripts.validate_luau import validate_luau as run_validation, format_issue
-        issues = run_validation(code)
-        errors = [i for i in issues if i.severity == "error"]
-        warnings = [i for i in issues if i.severity == "warning"]
-        if errors:
-            click.echo(f"⚠ Generated code has {len(errors)} error(s):", err=True)
-            for issue in errors:
-                click.echo(f"  {format_issue(issue, '<generated>')}", err=True)
-        if warnings:
-            click.echo(f"ℹ Generated code has {len(warnings)} warning(s):", err=True)
-            for issue in warnings:
-                click.echo(f"  {format_issue(issue, '<generated>')}", err=True)
-    except ImportError:
-        pass  # validate_luau not available; skip
+    validate_and_report(code)
 
     if output:
         out_path = Path(output)

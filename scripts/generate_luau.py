@@ -21,6 +21,8 @@ from pathlib import Path
 import click
 from dotenv import load_dotenv
 
+from scripts.utils import strip_markdown_fences, validate_and_report
+
 load_dotenv()
 
 
@@ -66,22 +68,6 @@ def load_system_prompt(prompt_path: Path) -> str:
     if not prompt_path.exists():
         raise click.ClickException(f"System prompt not found: {prompt_path}")
     return prompt_path.read_text(encoding="utf-8")
-
-
-def strip_markdown_fences(text: str) -> str:
-    """Remove markdown code fences from generated output.
-
-    Args:
-        text: Raw text that may contain ```luau ... ``` fences.
-
-    Returns:
-        Clean code without fences.
-    """
-    # Remove opening fence (```luau, ```lua, or just ```)
-    text = re.sub(r"^```(?:luau|lua)?\s*\n", "", text.strip())
-    # Remove closing fence
-    text = re.sub(r"\n```\s*$", "", text)
-    return text.strip()
 
 
 def build_system_message(system_prompt: str, knowledge_context: str) -> str:
@@ -203,21 +189,7 @@ def main(
     code = generate_luau(task_description, model, system_prompt, knowledge_context)
 
     # Run validation on generated code before writing
-    try:
-        from scripts.validate_luau import validate_luau as run_validation, format_issue
-        issues = run_validation(code)
-        errors = [i for i in issues if i.severity == "error"]
-        warnings = [i for i in issues if i.severity == "warning"]
-        if errors:
-            click.echo(f"⚠ Generated code has {len(errors)} error(s):", err=True)
-            for issue in errors:
-                click.echo(f"  {format_issue(issue, '<generated>')}", err=True)
-        if warnings:
-            click.echo(f"ℹ Generated code has {len(warnings)} warning(s):", err=True)
-            for issue in warnings:
-                click.echo(f"  {format_issue(issue, '<generated>')}", err=True)
-    except ImportError:
-        pass  # validate_luau not available; skip
+    validate_and_report(code)
 
     if output:
         out_path = Path(output)
