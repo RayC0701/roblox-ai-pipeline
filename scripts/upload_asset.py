@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -266,6 +267,14 @@ def save_registry(registry: dict, registry_path: Path) -> None:
     click.echo(f"Registry updated: {registry_path}")
 
 
+def _relative_source_path(file_path: Path) -> str:
+    """Return *file_path* relative to PROJECT_ROOT when possible."""
+    try:
+        return str(file_path.relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(file_path)
+
+
 def register_asset(
     asset_name: str,
     asset_id: str,
@@ -289,11 +298,16 @@ def register_asset(
 
     # Use a slug derived from the display name as the key
     key = asset_name.upper().replace(" ", "_").replace("-", "_")
+    key = re.sub(r'[^A-Z0-9_]', '', key)
+    if not key:
+        key = "UNNAMED_ASSET"
+    if key[0].isdigit():
+        key = f"ASSET_{key}"
     registry[key] = {
         "assetId": asset_id,
         "displayName": asset_name,
         "assetType": asset_type,
-        "sourceFile": str(file_path),
+        "sourceFile": _relative_source_path(file_path),
         "uploadedAt": _utc_now(),
     }
 
@@ -347,9 +361,15 @@ def generate_asset_ids_luau(
 
     for key, entry in sorted(registry.items()):
         asset_id = entry.get("assetId", "0")
+        # Validate asset ID is numeric to prevent Luau injection
+        try:
+            asset_id_num = int(asset_id)
+        except (ValueError, TypeError):
+            click.echo(f"  Warning: skipping {key} — invalid asset ID: {asset_id}")
+            continue
         display_name = entry.get("displayName", key)
         lines.append(f"-- {display_name}")
-        lines.append(f"AssetIds.{key} = {asset_id}")
+        lines.append(f"AssetIds.{key} = {asset_id_num}")
         lines.append("")
 
     lines.append("return AssetIds")

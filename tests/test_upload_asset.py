@@ -261,7 +261,7 @@ class TestRegistry:
         """Test registering a new asset."""
         registry_path = tmp_path / "registry.json"
         file_path = tmp_path / "model.fbx"
-        
+
         with patch("upload_asset._utc_now", return_value="2024-01-01T00:00:00Z"):
             result = register_asset(
                 "Test Sword",
@@ -270,11 +270,82 @@ class TestRegistry:
                 file_path,
                 registry_path
             )
-        
+
         assert "TEST_SWORD" in result
         assert result["TEST_SWORD"]["assetId"] == "123456"
         assert result["TEST_SWORD"]["displayName"] == "Test Sword"
         assert result["TEST_SWORD"]["assetType"] == "Model"
+        # tmp_path is outside PROJECT_ROOT, so fallback stores the full path
+        assert result["TEST_SWORD"]["sourceFile"] == str(file_path)
+
+    def test_register_asset_stores_relative_path(self, tmp_path):
+        """Test that sourceFile is stored as a relative path when inside PROJECT_ROOT."""
+        fake_root = tmp_path / "project"
+        fake_root.mkdir()
+        assets_dir = fake_root / "assets" / "models"
+        assets_dir.mkdir(parents=True)
+        model_file = assets_dir / "hero_sword.fbx"
+        model_file.write_bytes(b"fake fbx")
+
+        registry_path = tmp_path / "registry.json"
+
+        with patch("upload_asset.PROJECT_ROOT", fake_root), \
+             patch("upload_asset._utc_now", return_value="2024-01-01T00:00:00Z"):
+            result = register_asset(
+                "Hero Sword",
+                "999",
+                "Model",
+                model_file,
+                registry_path,
+            )
+
+        stored = result["HERO_SWORD"]["sourceFile"]
+        assert stored == "assets/models/hero_sword.fbx"
+        assert not stored.startswith("/")
+
+    def test_register_asset_sanitizes_special_chars(self, tmp_path):
+        """Test that special characters are stripped from registry keys."""
+        registry_path = tmp_path / "registry.json"
+        file_path = tmp_path / "model.fbx"
+
+        with patch("upload_asset._utc_now", return_value="2024-01-01T00:00:00Z"):
+            result = register_asset(
+                "sword; drop()",
+                "123456",
+                "Model",
+                file_path,
+                registry_path
+            )
+
+        # Only A-Z, 0-9, _ should remain
+        keys = list(result.keys())
+        assert len(keys) == 1
+        key = keys[0]
+        import re
+        assert re.match(r'^[A-Z][A-Z0-9_]*$', key), f"Key {key!r} contains invalid characters"
+        assert ";" not in key
+        assert "(" not in key
+        assert ")" not in key
+
+    def test_register_asset_prefixes_numeric_key(self, tmp_path):
+        """Test that keys starting with a digit get an ASSET_ prefix."""
+        registry_path = tmp_path / "registry.json"
+        file_path = tmp_path / "model.fbx"
+
+        with patch("upload_asset._utc_now", return_value="2024-01-01T00:00:00Z"):
+            result = register_asset(
+                "123 sword",
+                "999",
+                "Model",
+                file_path,
+                registry_path
+            )
+
+        keys = list(result.keys())
+        assert len(keys) == 1
+        key = keys[0]
+        assert key.startswith("ASSET_"), f"Key {key!r} should start with ASSET_"
+        assert not key[0].isdigit()
 
     def test_register_asset_updates_existing(self, tmp_path):
         """Test updating an existing asset entry."""
@@ -334,6 +405,43 @@ class TestGenerateAssetIdsLuau:
         content = output_path.read_text()
         assert "local AssetIds = {}" in content
         assert "return AssetIds" in content
+
+    def test_generate_luau_skips_non_numeric_id(self, tmp_path):
+        """Test that non-numeric asset IDs are skipped with a warning."""
+        output_path = tmp_path / "AssetIds.luau"
+        registry = {
+            "GOOD_ASSET": {
+                "assetId": "123456",
+                "displayName": "Good Asset"
+            },
+            "BAD_ASSET": {
+                "assetId": "not_a_number",
+                "displayName": "Bad Asset"
+            }
+        }
+
+        generate_asset_ids_luau(registry, output_path)
+
+        content = output_path.read_text()
+        assert "AssetIds.GOOD_ASSET = 123456" in content
+        assert "BAD_ASSET" not in content.split("AssetIds.")[-1] or "not_a_number" not in content
+        # Ensure the bad asset ID is NOT in the generated Luau
+        assert "not_a_number" not in content
+
+    def test_generate_luau_handles_numeric_string_id(self, tmp_path):
+        """Test that string asset IDs containing valid numbers are accepted."""
+        output_path = tmp_path / "AssetIds.luau"
+        registry = {
+            "MY_ASSET": {
+                "assetId": "12345",
+                "displayName": "My Asset"
+            }
+        }
+
+        generate_asset_ids_luau(registry, output_path)
+
+        content = output_path.read_text()
+        assert "AssetIds.MY_ASSET = 12345" in content
 
     def test_creates_parent_directories(self, tmp_path):
         """Test that parent directories are created if needed."""

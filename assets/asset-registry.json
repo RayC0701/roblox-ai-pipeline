@@ -3,14 +3,14 @@
     "assetId": "000000000",
     "displayName": "Test Sword",
     "assetType": "Model",
-    "sourceFile": "/Users/andraia/.openclaw/workspace/projects/roblox-ai-pipeline/assets/models/test_sword.fbx",
+    "sourceFile": "assets/models/test_sword.fbx",
     "uploadedAt": "1970-01-01T00:00:00+00:00"
   },
   "GOLD_COIN": {
     "assetId": "000000000",
     "displayName": "Gold Coin",
     "assetType": "Model",
-    "sourceFile": "/Users/andraia/.openclaw/workspace/projects/roblox-ai-pipeline/assets/models/gold_coin.fbx",
+    "sourceFile": "assets/models/gold_coin.fbx",
     "uploadedAt": "1970-01-01T00:00:00+00:00"
   }
 }
