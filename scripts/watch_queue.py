@@ -28,10 +28,12 @@ Job file format (.yaml):
     output: src/server/CombatSystem.server.luau   # optional
     generator: meshy                                # optional (meshy|blender)
     art_style: cartoon                              # optional
+    code_only: false                                # optional — skip 3D/upload, just gen code
 """
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -93,30 +95,42 @@ def process_job(job_path: Path, generator: str, use_claude_cli: bool) -> bool:
     prompt = job.get("prompt", "")
     name = job.get("name", "")
     spec = job.get("spec", "")
-
-    if not prompt or not name or not spec:
-        log(f"  ERROR: Job {job_path.name} missing required fields (prompt, name, spec)")
-        return False
-
-    # Build pipeline command
-    cmd = [
-        str(PROJECT_ROOT / "scripts" / "pipeline.sh"),
-        "--prompt", prompt,
-        "--name", name,
-        "--spec", str(PROJECT_ROOT / spec),
-        "--generator", job.get("generator", generator),
-    ]
-
-    if job.get("output"):
-        cmd += ["--output", str(PROJECT_ROOT / job["output"])]
-    if job.get("art_style"):
-        cmd += ["--art-style", job["art_style"]]
+    code_only = job.get("code_only", False)
 
     # Set env var so pipeline.sh passes --claude-cli to generate_luau.py
     env = None
     if use_claude_cli:
-        import os
         env = {**os.environ, "USE_CLAUDE_CLI": "1"}
+
+    if code_only:
+        # Code-only mode: just run generate_luau.py (no 3D asset or upload)
+        if not spec:
+            log(f"  ERROR: Job {job_path.name} missing 'spec' field")
+            return False
+        cmd = [
+            sys.executable, str(PROJECT_ROOT / "scripts" / "generate_luau.py"),
+            "--spec", str(PROJECT_ROOT / spec),
+        ]
+        if job.get("output"):
+            cmd += ["--output", str(PROJECT_ROOT / job["output"])]
+        if use_claude_cli:
+            cmd.append("--claude-cli")
+    else:
+        # Full pipeline mode: 3D asset + upload + Luau code
+        if not prompt or not name or not spec:
+            log(f"  ERROR: Job {job_path.name} missing required fields (prompt, name, spec)")
+            return False
+        cmd = [
+            str(PROJECT_ROOT / "scripts" / "pipeline.sh"),
+            "--prompt", prompt,
+            "--name", name,
+            "--spec", str(PROJECT_ROOT / spec),
+            "--generator", job.get("generator", generator),
+        ]
+        if job.get("output"):
+            cmd += ["--output", str(PROJECT_ROOT / job["output"])]
+        if job.get("art_style"):
+            cmd += ["--art-style", job["art_style"]]
 
     log(f"  Running: {' '.join(cmd)}")
 

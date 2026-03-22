@@ -169,24 +169,19 @@ def generate_luau_cli(
     """
     system_message = build_system_message(system_prompt, knowledge_context)
 
-    # Write system prompt to a temp file so we can pass it via --system-prompt
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".md", delete=False, encoding="utf-8"
-    ) as f:
-        f.write(system_message)
-        system_file = f.name
-
     try:
         result = subprocess.run(
             [
                 "claude",
                 "--print",                       # non-interactive, output only
-                "--system-prompt", system_file,
-                task_description,
+                "--no-session-persistence",       # don't save session state
+                "--system-prompt", system_message,
             ],
+            input=task_description,
             capture_output=True,
             text=True,
             timeout=300,  # 5 minute timeout
+            cwd="/tmp",                          # avoid repo context pollution
         )
     except FileNotFoundError:
         raise click.ClickException(
@@ -194,8 +189,6 @@ def generate_luau_cli(
         )
     except subprocess.TimeoutExpired:
         raise click.ClickException("claude CLI timed out after 300s")
-    finally:
-        os.unlink(system_file)
 
     if result.returncode != 0:
         stderr = result.stderr.strip()
