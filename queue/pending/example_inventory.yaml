@@ -1,5 +1,0 @@
-# Code-only example — generates Luau without 3D asset steps.
-# Works with Claude Max subscription, no other API keys needed.
-code_only: true
-spec: prompts/templates/inventory-system.md
-output: src/server/InventorySystem.server.luau
