@@ -220,6 +220,11 @@ if [[ -n "$DRY_RUN" ]]; then
     GENERATE_ARGS+=("--dry-run")
 fi
 
+# Support Claude Max subscription via CLI (set USE_CLAUDE_CLI=1)
+if [[ "${USE_CLAUDE_CLI:-}" == "1" ]]; then
+    GENERATE_ARGS+=("--claude-cli")
+fi
+
 PYTHONPATH="$PROJECT_ROOT" python3 "$SCRIPT_DIR/generate_luau.py" "${GENERATE_ARGS[@]}"
 
 echo ""

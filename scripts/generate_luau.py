@@ -10,12 +10,18 @@ Usage:
     python scripts/generate_luau.py --spec specs/feature.md
     python scripts/generate_luau.py "task" --model claude-opus-4-6 --output src/server/feature.luau
     python scripts/generate_luau.py "task" --dry-run
+
+    # Use Claude Max subscription via CLI (no API key needed):
+    python scripts/generate_luau.py "task" --claude-cli
 """
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import click
@@ -143,18 +149,76 @@ def generate_luau(
     return strip_markdown_fences(raw_output)
 
 
+def generate_luau_cli(
+    task_description: str,
+    system_prompt: str,
+    knowledge_context: str,
+) -> str:
+    """Generate Luau code using the `claude` CLI (Claude Code).
+
+    Works with a Claude Max subscription — no ANTHROPIC_API_KEY needed.
+    Invokes the `claude` command in non-interactive (print) mode.
+
+    Args:
+        task_description: What the code should do.
+        system_prompt: The system prompt text.
+        knowledge_context: Knowledge base content.
+
+    Returns:
+        Generated Luau code with markdown fences stripped.
+    """
+    system_message = build_system_message(system_prompt, knowledge_context)
+
+    # Write system prompt to a temp file so we can pass it via --system-prompt
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".md", delete=False, encoding="utf-8"
+    ) as f:
+        f.write(system_message)
+        system_file = f.name
+
+    try:
+        result = subprocess.run(
+            [
+                "claude",
+                "--print",                       # non-interactive, output only
+                "--system-prompt", system_file,
+                task_description,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minute timeout
+        )
+    except FileNotFoundError:
+        raise click.ClickException(
+            "claude CLI not found. Install Claude Code: npm install -g @anthropic-ai/claude-code"
+        )
+    except subprocess.TimeoutExpired:
+        raise click.ClickException("claude CLI timed out after 300s")
+    finally:
+        os.unlink(system_file)
+
+    if result.returncode != 0:
+        stderr = result.stderr.strip()
+        raise click.ClickException(f"claude CLI failed (exit {result.returncode}): {stderr[:500]}")
+
+    return strip_markdown_fences(result.stdout)
+
+
 @click.command()
 @click.argument("task", required=False)
 @click.option("--spec", type=click.Path(exists=True), help="Read task from a spec file.")
 @click.option("--model", default="claude-sonnet-4-6", show_default=True, help="Claude model to use.")
 @click.option("--output", "-o", type=click.Path(), help="Write output to file instead of stdout.")
 @click.option("--dry-run", is_flag=True, help="Show what would be sent without calling the API.")
+@click.option("--claude-cli", is_flag=True, envvar="USE_CLAUDE_CLI",
+              help="Use claude CLI (Claude Max subscription) instead of API.")
 def main(
     task: str | None,
     spec: str | None,
     model: str,
     output: str | None,
     dry_run: bool,
+    claude_cli: bool,
 ) -> None:
     """Generate Luau code from a task description using Claude API."""
     # Resolve task description
@@ -186,7 +250,10 @@ def main(
         click.echo(f"\n--- System prompt (first 500 chars) ---\n{system_message[:500]}...")
         return
 
-    code = generate_luau(task_description, model, system_prompt, knowledge_context)
+    if claude_cli:
+        code = generate_luau_cli(task_description, system_prompt, knowledge_context)
+    else:
+        code = generate_luau(task_description, model, system_prompt, knowledge_context)
 
     # Run validation on generated code before writing
     validate_and_report(code)

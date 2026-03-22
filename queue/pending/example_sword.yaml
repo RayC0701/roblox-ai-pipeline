@@ -1,0 +1,8 @@
+# Example pipeline job — drop files like this into queue/pending/
+# The watcher will pick them up automatically.
+prompt: "Low-poly medieval sword with leather grip, Roblox style"
+name: "Medieval Sword"
+spec: prompts/templates/combat-system.md
+output: src/server/CombatSword.server.luau
+generator: blender
+art_style: cartoon

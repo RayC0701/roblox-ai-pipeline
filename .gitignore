@@ -39,6 +39,12 @@ coverage.xml
 
 # Cost tracking logs (regenerable)
 logs/costs.csv
+logs/watcher.log
+
+# Queue state (only pending/ examples tracked)
+queue/processing/
+queue/done/
+queue/failed/
 
 # OS
 .DS_Store

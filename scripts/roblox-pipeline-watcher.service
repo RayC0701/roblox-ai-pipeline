@@ -1,0 +1,27 @@
+# Systemd service for the Roblox AI Pipeline watcher.
+#
+# Install:
+#   cp scripts/roblox-pipeline-watcher.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now roblox-pipeline-watcher
+#
+# Check status:
+#   systemctl --user status roblox-pipeline-watcher
+#   journalctl --user -u roblox-pipeline-watcher -f
+#
+# Logs also written to: logs/watcher.log
+
+[Unit]
+Description=Roblox AI Pipeline Watcher
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/roblox-ai-pipeline
+ExecStart=%h/roblox-ai-pipeline/.venv/bin/python scripts/watch_queue.py --interval 30
+Restart=on-failure
+RestartSec=10
+Environment=PATH=%h/.local/bin:%h/.nvm/versions/node/v22/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target
