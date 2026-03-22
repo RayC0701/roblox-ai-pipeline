@@ -17,6 +17,7 @@ from scripts.generate_blender_asset import (
     generate_blender_script,
     _strip_code_fences,
     execute_blender_script,
+    validate_blender_script,
 )
 
 
@@ -177,6 +178,52 @@ class TestExecuteBlenderScript:
         )
         with pytest.raises(click.ClickException, match=r"\.\.\.X"):
             execute_blender_script("/usr/bin/blender", "/tmp/script.py")
+
+
+# ---------------------------------------------------------------------------
+# validate_blender_script
+# ---------------------------------------------------------------------------
+
+class TestValidateBlenderScript:
+    def test_clean_script_passes(self):
+        script = "import bpy\nimport bmesh\nimport mathutils\nbpy.ops.mesh.primitive_cube_add()\n"
+        validate_blender_script(script)  # Should not raise
+
+    def test_os_system_rejected(self):
+        import click
+        script = 'import os\nos.system("rm -rf /")\n'
+        with pytest.raises(click.ClickException, match="os.system"):
+            validate_blender_script(script)
+
+    def test_subprocess_run_rejected(self):
+        import click
+        script = "import subprocess\nsubprocess.run(['ls'])\n"
+        with pytest.raises(click.ClickException, match="subprocess"):
+            validate_blender_script(script)
+
+    def test_eval_rejected(self):
+        import click
+        script = 'x = eval("1+1")\n'
+        with pytest.raises(click.ClickException, match="eval"):
+            validate_blender_script(script)
+
+    def test_import_socket_rejected(self):
+        import click
+        script = "import socket\ns = socket.socket()\n"
+        with pytest.raises(click.ClickException, match="socket"):
+            validate_blender_script(script)
+
+    def test_comment_with_blocked_pattern_passes(self):
+        script = "import bpy\n# os.system('this is just a comment')\nbpy.ops.mesh.primitive_cube_add()\n"
+        validate_blender_script(script)  # Should not raise
+
+    def test_bpy_fbx_export_passes(self):
+        script = (
+            "import bpy\n"
+            "bpy.ops.mesh.primitive_cube_add()\n"
+            "bpy.ops.export_scene.fbx(filepath='/tmp/out.fbx')\n"
+        )
+        validate_blender_script(script)  # Should not raise
 
 
 # ---------------------------------------------------------------------------

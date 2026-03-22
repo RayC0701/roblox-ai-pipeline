@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -31,10 +32,57 @@ BLENDER_SYSTEM_PROMPT = (
     "using the bpy module to procedurally create a 3D asset matching the user's "
     "description. Delete the default cube. Set up materials/colors as appropriate. "
     "Export as FBX to the specified path. Output ONLY the raw Python code with no "
-    "markdown fences or explanations."
+    "markdown fences or explanations. "
+    "NEVER use os.system, subprocess, eval, exec, or network libraries. "
+    "Only use bpy, bmesh, mathutils, and math."
 )
 
 DEFAULT_MODEL = "claude-sonnet-4-20250514"
+
+BLOCKED_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    ("os.system", re.compile(r"\bos\.system\s*\(")),
+    ("os.popen", re.compile(r"\bos\.popen\s*\(")),
+    ("os.exec*", re.compile(r"\bos\.exec[a-z]*\s*\(")),
+    ("os.remove", re.compile(r"\bos\.remove\s*\(")),
+    ("os.unlink", re.compile(r"\bos\.unlink\s*\(")),
+    ("os.rmdir", re.compile(r"\bos\.rmdir\s*\(")),
+    ("shutil.rmtree", re.compile(r"\bshutil\.rmtree\s*\(")),
+    ("subprocess", re.compile(r"\bsubprocess\b")),
+    ("eval(", re.compile(r"\beval\s*\(")),
+    ("exec(", re.compile(r"\bexec\s*\(")),
+    ("compile(", re.compile(r"\bcompile\s*\(")),
+    ("__import__", re.compile(r"__import__")),
+    ("urllib", re.compile(r"\burllib\b")),
+    ("http.client", re.compile(r"\bhttp\.client\b")),
+    ("socket", re.compile(r"\bsocket\b")),
+    ("requests", re.compile(r"\brequests\b")),
+    ("ftplib", re.compile(r"\bftplib\b")),
+]
+
+
+def validate_blender_script(script_text: str) -> None:
+    """Validate that a generated Blender script contains no dangerous operations.
+
+    Scans each non-comment line for blocked patterns such as shell commands,
+    network access, and dynamic code execution.
+
+    Args:
+        script_text: The generated Python script to validate.
+
+    Raises:
+        click.ClickException: If a blocked pattern is found.
+    """
+    for line_no, line in enumerate(script_text.splitlines(), start=1):
+        stripped = line.strip()
+        # Skip comment lines
+        if stripped.startswith("#"):
+            continue
+        for name, pattern in BLOCKED_PATTERNS:
+            if pattern.search(line):
+                raise click.ClickException(
+                    f"Blocked pattern '{name}' found in generated script "
+                    f"at line {line_no}: {stripped!r}"
+                )
 
 
 def get_anthropic_key() -> str:
@@ -138,6 +186,9 @@ def generate_blender_script(
 
     # Strip markdown fences if Claude included them despite instructions
     script_text = _strip_code_fences(script_text)
+
+    # Safety: reject scripts with dangerous operations
+    validate_blender_script(script_text)
 
     return script_text, tokens_in, tokens_out
 
